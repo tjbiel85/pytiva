@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+from .utils import value_between_row_values
+
 
 class ActivityDataset(object):
     """Empty docstring"""
@@ -35,30 +37,6 @@ class ActivityDataset(object):
 
         # TODO: check to see if all required_columns are present
 
-    def value_between_row_values(
-            row,
-            value,
-            column_left='activity_start',
-            column_right='activity_end',
-            include_left=True,
-            include_right=False
-    ):
-
-        if include_left == True:
-            l_func = operator.ge
-        else:
-            l_func = operator.gt
-
-        if include_right == True:
-            r_func = operator.le
-        else:
-            r_func = operator.lt
-
-        if l_func(value, row[column_left]) and r_func(value, row[column_right]):
-            return True
-        else:
-            return False
-
     def datetime_to_dow_based_timedelta(x):
         """
         Sets aside adds 24 hours
@@ -86,11 +64,11 @@ class ActivityDataset(object):
 
     def _collect_concurrency(
             self,
-            date_range=None,
-            column_left='activity_start',
-            column_right='activity_end',
-            func=value_between_row_values,
-            limit=None
+            date_range = None,
+            column_left = 'activity_start',
+            column_right = 'activity_end',
+            func = value_between_row_values,
+            limit = None
     ):
         # TODO: multithread this, perhaps separate out a generator from the rest to hand off
         # and then re-aggregate
