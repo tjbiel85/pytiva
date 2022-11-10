@@ -1,5 +1,52 @@
 import pandas as pd
 
+from ..activity import ActivityDataset
+
+
+def staff_activity_from_assignments_long_format(shift_assignments,
+                                                provider_shift_library):
+    """
+    Helper function to populate an ActivityDataset using a collection
+    of shift assignments using ProviderShift objects to help translate.
+
+    Expects as input a DataFrame with columns label, index_date,
+    datetime_slot, and capacity.
+
+    For example:
+    (index)       assignment       date        staff
+    0      Fel-ICU-Incentive 2021-10-02  Montejano J
+    1      Fel-ICU-Incentive 2021-10-10  Montejano J
+    2                Surge 2 2021-11-17   Hennigan A
+    3                Surge 2 2021-11-18   Hennigan A
+    4                Surge 2 2021-11-19      Douin D
+
+    """
+
+    staffing_slots = []
+
+    for i, assignment in shift_assignments.iterrows():
+
+        s = matching_shift_from_dictionary(
+            assignment['assignment'],
+            provider_shift_library
+        )
+
+        if s:
+            d = assignment['date']
+
+            slot = {
+                'activity_start': d + s.start,
+                'activity_end': d + s.start + s.duration,
+                'activity': s.label,
+                'personnel': assignment['staff'],
+                'capacity': s.capacity
+            }
+
+            staffing_slots.append(slot)
+
+    return ActivityDataset(staffing_slots)
+
+
 def matching_shift_from_collection(label, collection):
     """Return matching ProviderShift object in collection, according to label"""
     label = str(label).upper()
@@ -13,6 +60,19 @@ def matching_shift_from_collection(label, collection):
                 raise Exception(f'Found more than one match ({s} and {match})')
 
     return match
+
+
+def matching_shift_from_dictionary(label, collection):
+    """Return matching ProviderShift object in collection, according to label
+
+    Assumes collection is structured as {'label': ProviderShift object}
+
+    """
+    match = label in collection.keys()
+    if match:
+        return collection[label]
+    else:
+        raise Exception(f'Could not find matching shift in collection ({label})')
 
 
 def earliest_starting_time(shift_collection):
