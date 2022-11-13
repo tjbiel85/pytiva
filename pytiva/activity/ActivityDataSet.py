@@ -1,41 +1,32 @@
-import operator
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
 from .utils import value_between_row_values
+from ..dataset import DataSet
 
 
-class ActivityDataset(object):
-    """Empty docstring"""
+class ActivityDataSet(DataSet):
+    """
+    Subclassed from pytiva.dataset.DataSet
+    """
 
-    required_columns = ['activity_start', 'activity_end', 'activity']
+    _required_columns = ['activity_start', 'activity_end', 'activity']
+    _datetime_columns = ['activity_start', 'activity_end']
     timeseries_index_label = 'timestamp'
 
     def __init__(
             self,
             data,
-            column_map={
-                'activity_start': 'activity_start',
-                'activity_end': 'activity_end',
-                'activity': 'activity'
-            },
-            default_resolution='1Min'
+            default_resolution='1Min',
+            *args, **kwargs
     ):
         self._default_resolution = default_resolution
-        self._data = data
-        self.df = pd.DataFrame(data)
 
-        # if the expected columns are already present, this does nothing
-        self.df.rename(columns=column_map, inplace=True)
+        super_init_return_val = super().__init__(data=data, *args, **kwargs)
 
-        for dtc in ['activity_start', 'activity_end']:
-            self.df[dtc] = pd.to_datetime(self.df[dtc])
-
-        self.df['activity_start'] = self.df['activity_start'].apply(lambda x: x.floor(self._default_resolution))
-        self.df['activity_end'] = self.df['activity_end'].apply(lambda x: x.ceil(self._default_resolution))
-
-        # TODO: check to see if all required_columns are present
+        self._df['activity_start'] = self._df['activity_start'].apply(lambda x: x.floor(self._default_resolution))
+        self._df['activity_end'] = self._df['activity_end'].apply(lambda x: x.ceil(self._default_resolution))
 
     def datetime_to_dow_based_timedelta(x):
         """
@@ -49,8 +40,8 @@ class ActivityDataset(object):
         return dow_part + hours_part + minutes_part + seconds_part
 
     def _date_range_from_start_and_end_points(self, drop_duplicates=True, dropna=True):
-        starts = self.df['activity_start'].values
-        ends = self.df['activity_end'].values
+        starts = self._df['activity_start'].values
+        ends = self._df['activity_end'].values
         both = np.concatenate([starts, ends])
         date_range = pd.Series(both)
 
@@ -84,7 +75,7 @@ class ActivityDataset(object):
             limit = len(date_range)
 
         for d in tqdm(date_range[:limit]):
-            df_filter = self.df.apply(
+            df_filter = self._df.apply(
                 lambda x: func(
                     x,
                     d,
@@ -95,7 +86,7 @@ class ActivityDataset(object):
             )
             concurrency_collection.append({
                 self.timeseries_index_label: d,
-                'concurrent_activity_count': len(self.df[df_filter])
+                'concurrent_activity_count': len(self._df[df_filter])
             })
 
         return concurrency_collection

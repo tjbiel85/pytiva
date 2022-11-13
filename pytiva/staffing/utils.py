@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ..activity import ActivityDataset
+from ..activity import ActivityDataSet
 
 
 def staff_activity_from_assignments_long_format(shift_assignments,
@@ -44,7 +44,7 @@ def staff_activity_from_assignments_long_format(shift_assignments,
 
             staffing_slots.append(slot)
 
-    return ActivityDataset(staffing_slots)
+    return ActivityDataSet(staffing_slots)
 
 
 def matching_shift_from_collection(label, collection):
