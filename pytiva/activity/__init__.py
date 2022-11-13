@@ -1,5 +1,5 @@
 # local modules
-from .ActivityDataset import ActivityDataset
+from .ActivityDataSet import ActivityDataSet
 
 # helper functions
 from .utils import *

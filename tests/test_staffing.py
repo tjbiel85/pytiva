@@ -6,8 +6,8 @@ import pandas as pd
 from pytiva.staffing import qgenda_task_grid_to_long_format, ProviderShift, staff_activity_from_assignments_long_format
 
 WD = r'test_data'
-QGENDA_EXPORT_TEST_DATA_FILENAME = 'CU_Medicine_-_Department_of_Anesthesiology - Grid By Task - 10_1_2021 to 9_30_2022.xlsx'
-STAFFING_LONG_FORMAT_COMPARISON_TEST_DATA_FILENAME = 'anesthesia_staffing_data_long.csv'
+QGENDA_EXPORT_TEST_DATA_FILENAME = 'qgenda_grid_by_task_test_data.xlsx'
+STAFFING_LONG_FORMAT_COMPARISON_TEST_DATA_FILENAME = 'anesthesia_staffing_long_test_data.csv'
 STAFFING_ACTIVITY_REFERENCE_DATA = 'staffing_activity_dataset_test_reference.csv'
 
 
@@ -99,7 +99,7 @@ class TestQgendaWrangling(unittest.TestCase):
         )
 
         df_staffing_reference = pd.read_csv(os.path.join(WD, STAFFING_ACTIVITY_REFERENCE_DATA))
-        self.assertTrue(all(df_staffing_reference == ds_staffing.df))
+        self.assertTrue(all(df_staffing_reference == ds_staffing._df))
 
 # in a script file
 if __name__ == '__main__':
