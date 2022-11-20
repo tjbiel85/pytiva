@@ -22,6 +22,7 @@ class AnesthesiaCaseDataSet(AnesthesiaDataSet):
     """
 
     _required_columns = [
+        # TODO: consider a base set of these in AnesthesiaDataSet and *extend* them in subclasses
         'case_id',
         'anesthesia_start',
         'anesthesia_end',

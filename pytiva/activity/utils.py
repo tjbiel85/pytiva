@@ -1,3 +1,4 @@
+import itertools
 import operator
 ORDERED_WEEKLY_DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -37,3 +38,21 @@ def concurrent_weekly_activity(df_cc):
     df_copy['minute_of_day'] = df_copy.index.map(minute_of_day)
     grouped = df_copy.groupby(['minute_of_day', 'day_name'])['concurrent_activity_count'].mean()
     return grouped.unstack()[ORDERED_WEEKLY_DAY_NAME]
+
+
+def check_end_of_concurrent_activity(row,
+                                     activity_label='concurrent_activity_count',
+                                     prev_label='prev'):
+    if row[activity_label] == 0 and row[prev_label] > 0:
+        return True
+    else:
+        return False
+
+
+def check_start_of_concurrent_activity(row,
+                                       activity_label='concurrent_activity_count',
+                                       prev_label='prev'):
+    if row[activity_label] > 0 and row[prev_label] <= 0:
+        return True
+    else:
+        return False
