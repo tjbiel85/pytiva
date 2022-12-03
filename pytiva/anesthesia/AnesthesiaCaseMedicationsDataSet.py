@@ -1,5 +1,3 @@
-from pandas import to_timedelta
-
 from .AnesthesiaDataSet import AnesthesiaDataSet
 from ..activity import ActivityDataSet
 
@@ -15,7 +13,25 @@ class AnesthesiaCaseMedicationsDataSet(AnesthesiaDataSet):
 
     save off a typical map for those columns elsewhere in a data cleaning util?
     """
-    _required_columns = ['case_id', 'med_datetime', 'med_label']
+    _required_columns = [
+        'case_id',
+        'med_datetime',
+        'med_label'
+    ]
+
+    _dose_units = [
+        'g',
+        'grams',
+        'mg',
+        'milligrams',
+        'mcg',
+        'micrograms',
+        'ml',
+        'milliliters',
+        'l',
+        'liters'
+    ]
+    _dose_infusion_times = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
