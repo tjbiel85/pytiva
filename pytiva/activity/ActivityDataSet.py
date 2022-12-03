@@ -20,11 +20,16 @@ class ActivityDataSet(DataSet):
 
     _activity_start_col = 'activity_start'
     _activity_end_col = 'activity_end'
+    _duration_col = 'duration'
     _required_columns = [_activity_start_col, _activity_end_col]
     _datetime_columns = [_activity_start_col, _activity_end_col]
     _concurrency_ts_start_col = 'is_start'
     _concurrency_ts_end_col = 'is_end'
     _ts_index_label = 'timestamp'
+
+    #TODO: enforce end values greater than start values?
+
+    _forbidden_columns = ['duration']
 
     def __init__(
             self,
@@ -42,6 +47,10 @@ class ActivityDataSet(DataSet):
         self._df[self._activity_end_col] = self._df[self._activity_end_col].apply(
             lambda x: x.ceil(self._default_resolution)
         )
+
+        self._df[self._duration_col] = self._df[self._activity_end_col] - self._df[self._activity_start_col]
+
+        self._resort_columns()
 
     def datetime_to_dow_based_timedelta(x):
         """
@@ -117,7 +126,7 @@ class ActivityDataSet(DataSet):
         reindexed.index.name = self._ts_index_label
         return reindexed.fillna(method='ffill')
 
-    def _generate_stratified_df_slices(self, strata_cols):
+    def _generate_stratified_df_slices(self, strata_cols, strip_forbidden_cols=True):
         """
         Generate slices of data in self using unique combinations of values in columns named by strata_cols.
 
@@ -130,6 +139,10 @@ class ActivityDataSet(DataSet):
             df_slice = self._df
             for k, v in c.items():
                 df_slice = df_slice[df_slice[k] == v]
+
+                if strip_forbidden_cols:
+                    df_slice = df_slice[ [c for c in df_slice.columns if c not in self._forbidden_columns] ]
+
                 yield df_slice
 
     def fetch_unduplicated_concurrency(self, activities=None, activity_out_label='activity',

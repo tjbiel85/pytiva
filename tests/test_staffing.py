@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 # local module to be tested
+import pytiva
 from pytiva.staffing import qgenda_task_grid_to_long_format, ProviderShift, staff_activity_from_assignments_long_format
 
 WD = r'test_data'
@@ -99,7 +100,9 @@ class TestQgendaWrangling(unittest.TestCase):
         )
 
         df_staffing_reference = pd.read_csv(os.path.join(WD, STAFFING_ACTIVITY_REFERENCE_DATA))
-        self.assertTrue(all(df_staffing_reference == ds_staffing._df))
+        ds_staffing_reference = pytiva.ActivityDataSet(df_staffing_reference)
+
+        self.assertTrue(all(ds_staffing_reference._df == ds_staffing._df))
 
 # in a script file
 if __name__ == '__main__':

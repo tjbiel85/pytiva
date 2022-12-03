@@ -13,6 +13,7 @@ class DataSet(object):
     # these need to be set ahead of time in order to let them be handled
     # properly in __init__() without running afoul of getattr/setattr logic
     _df = None
+    _forbidden_columns = []
     _required_columns = []
     _datetime_columns = []
 
@@ -26,6 +27,13 @@ class DataSet(object):
         except Exception as e:
             print(e)
             raise Exception(f'Supplied data and signature must be able to create a pandas DataFrame')
+
+        # verify no forbidden columns
+        if hasattr(data, 'columns'):
+            provided_forbidden_columns = [c for c in data.columns if c in self._forbidden_columns]
+            if len(provided_forbidden_columns) > 0:
+                raise Exception(
+                    f'This DataSet cannot have columns {self._forbidden_columns} and has {provided_forbidden_columns}')
 
         # verify required columns, if any, are present
         check, missing_required_columns = self._check_required_columns()
@@ -116,3 +124,7 @@ class DataSet(object):
         column is considered valid if every element returns True using func(element).
         """
         return all(self._df[column].apply(func))
+
+    def _resort_columns(self, ascending=True):
+        self._df = self._df[[c for c in sorted(self.columns.values)[::1 if ascending else -1]]]
+        return self
