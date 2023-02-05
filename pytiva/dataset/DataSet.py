@@ -128,3 +128,11 @@ class DataSet(object):
     def _resort_columns(self, ascending=True):
         self._df = self._df[[c for c in sorted(self.columns.values)[::1 if ascending else -1]]]
         return self
+
+    @property
+    def _self_type(self):
+        return type(self)
+
+    @property
+    def _length(self):
+        return len(self._df)

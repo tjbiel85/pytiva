@@ -24,6 +24,11 @@ class AnesthesiaCaseEventsDataSet(AnesthesiaDataSet):
     _event_col = 'event_label'
     _datetime_col = 'event_datetime'
 
+    # for enforcement as datetime objects during init
+    _datetime_columns = [
+        _datetime_col
+    ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
