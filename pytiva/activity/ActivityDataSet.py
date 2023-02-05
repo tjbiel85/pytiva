@@ -184,7 +184,7 @@ class ActivityDataSet(DataSet):
 
         df_out['activity'] = activity_out_label
 
-        return df_out
+        return type(self)(df_out)
 
     def _unduplicated_concurrency_to_df(self, ads):
         """
@@ -206,3 +206,29 @@ class ActivityDataSet(DataSet):
         )
 
         return paired_df
+
+    def hr_activity_summary(self, display_limit=3):
+        """
+        Returns a single string with the labels and counts for up to display_limit number
+        of unique activity label entries. Looks something like:
+
+            '"medication" (36118 entries), "regional procedure" (1531 entries), and 1 other'
+
+        :param display_limit:
+        :return:
+        """
+
+        activity_vc = self['activity'].value_counts()
+        l_vc = len(activity_vc)
+        omitted_count = l_vc - display_limit
+        activity_vc_lst = []
+        for label, number in activity_vc[:display_limit].iteritems():
+            activity_vc_lst.append(f'"{label}" ({number} entries)')
+
+        hr = ", ".join(activity_vc_lst)
+        if omitted_count > 0:
+            hr = hr + f', and {omitted_count} other'
+            if omitted_count > 1:
+                hr = hr + 's'
+
+        return hr

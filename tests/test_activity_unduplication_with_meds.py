@@ -40,7 +40,7 @@ class TestActivityTimeSeries(unittest.TestCase):
         :return:
         """
         for td in (pd.to_timedelta(n, unit='Min') for n in range(-3, 3)):
-            test_ads = self.med_ds.to_activity_dataset(offset_before=td, offset_after=td)
+            test_ads = self.med_ds.to_activity_dataset(offset_before=td, offset_after=td, default_resolution='1s')
             self.assertTrue(all(test_ads['activity_end'] - test_ads['activity_start'] == 2 * td))
 
 
