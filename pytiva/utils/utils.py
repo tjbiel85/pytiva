@@ -13,11 +13,20 @@ def hash_and_slash(x, slice_size=200):
     :param slice_size:
     :return:
     """
-    slice_offset = random.randint(0,55)
-    slice_end = slice_offset + slice_size
     hashed = hashlib.sha256(str(x).encode('utf-8')).hexdigest()
-    hashed = hashed + hashed
-    return hashed[slice_offset:slice_size]
+
+    salt_offset_start = random.randint(0,255)
+    salt_end = salt_offset_start + random.randint(0,255)
+    salt = (hashed + hashed)[salt_offset_start:salt_end]
+
+    salted = salt+hashed
+
+    rehashed = hashlib.sha256(str(salted).encode('utf-8')).hexdigest()
+
+    slice_offset = random.randint(0, 55)
+    slice_end = slice_offset + slice_size
+    slashed = rehashed[slice_offset:slice_end]
+    return slashed
 
 
 def hash_cols_in_df(df, cols, hash_func=None):

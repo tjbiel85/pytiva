@@ -3,25 +3,19 @@ import os
 import pandas as pd
 
 # local module to be tested
-from pytiva.activity import ActivityDataSet
 from pytiva.anesthesia import AnesthesiaCaseMedicationsDataSet
 
-WD = r'test_data'
-ACTIVITY_TEST_DATA_FILENAME = 'activity_test_data_full.csv'
-CONCURRENCY_TEST_DATA_FILENAME = 'test_data_concurrency.csv'
-MED_TEST_DATA_FILENAME = 'med_test_data.csv'
-UNDUPLICATED_MED_ACTIVITY_BY_CASE_FILENAME = 'ads_fetch_unduplicated_concurrency_out.csv'
-
+import testconfig
 
 class TestActivityTimeSeries(unittest.TestCase):
 
     def setUp(self):
         self.med_ds = AnesthesiaCaseMedicationsDataSet(
-            pd.read_csv(os.path.join(WD, MED_TEST_DATA_FILENAME), parse_dates=['med_datetime'])
+            pd.read_csv(os.path.join(testconfig.WD, testconfig.TESTDATA['DS_CASE_MEDS']), parse_dates=['med_datetime'])
         )
 
         self.unduplicated_med_activity_by_case_df = pd.read_csv(
-            os.path.join(WD, UNDUPLICATED_MED_ACTIVITY_BY_CASE_FILENAME),
+            os.path.join(testconfig.WD, testconfig.TESTDATA['ADS_FROM_MEDS']),
             parse_dates=['activity_start', 'activity_end']
         )
 
@@ -29,7 +23,10 @@ class TestActivityTimeSeries(unittest.TestCase):
         three_minutes = pd.to_timedelta(3, unit='Min')
         ads = self.med_ds.to_activity_dataset(offset_before=three_minutes, offset_after=three_minutes)
         strata_cols = ['case_id']
-        big_df = ads.fetch_unduplicated_concurrency(activities=['medication'], strata=strata_cols)
+        unduplicated = ads.fetch_unduplicated_concurrency(activities=['medication'], strata=strata_cols)
+        big_df = unduplicated._df
+        print(big_df)
+        print(self.unduplicated_med_activity_by_case_df)
 
         self.assertTrue(all(big_df == self.unduplicated_med_activity_by_case_df))
 
