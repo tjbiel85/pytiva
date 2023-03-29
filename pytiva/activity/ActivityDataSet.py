@@ -1,4 +1,7 @@
 import itertools
+import multiprocessing
+import os
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -27,8 +30,6 @@ class ActivityDataSet(DataSet):
     _concurrency_ts_end_col = 'is_end'
     _ts_index_label = 'timestamp'
 
-    #TODO: enforce end values greater than start values?
-
     _forbidden_columns = ['duration']
 
     def __init__(
@@ -48,9 +49,31 @@ class ActivityDataSet(DataSet):
             lambda x: x.ceil(self._default_resolution)
         )
 
-        self._df[self._duration_col] = self._df[self._activity_end_col] - self._df[self._activity_start_col]
-
+        self.generate_duration()
         self._resort_columns()
+
+    def generate_duration(self):
+        self._df[self._duration_col] = self._df[self._activity_end_col] - self._df[self._activity_start_col]
+        pass
+
+    def apply_offset(self, td_offset, apply_to_start=True, regenerate_duration=True):
+        if apply_to_start:
+            self._df[self._activity_start_col] = self._df[self._activity_start_col] + td_offset
+        else:
+            self._df[self._activity_end_col] = self._df[self._activity_end_col] + td_offset
+
+        if regenerate_duration:
+            self.generate_duration()
+
+        pass
+
+    def enforce_maximum_duration(self, maximum_duration, regenerate_duration=True):
+        self._df.loc[self._df['duration'] > maximum_duration, 'activity_end'] = self._df['activity_start'].apply(lambda x: x + maximum_duration)
+
+        if regenerate_duration:
+            self.generate_duration()
+
+        pass
 
     def datetime_to_dow_based_timedelta(x):
         """
@@ -77,16 +100,43 @@ class ActivityDataSet(DataSet):
 
         return date_range
 
+    # TODO: functools.partial
+    def _mp_concurrency_helper(self, args):
+        data_df, datetime, column_left, column_right, func, ts_index_label = args
+
+        # filter to the concurrent records of interest
+        df_filter = data_df.apply(
+            lambda x: func(
+                x,
+                datetime,
+                column_left,
+                column_right
+            ),
+            axis=1
+        )
+        return {
+            ts_index_label: datetime,
+            'concurrent_activity_count': len(data_df.loc[df_filter])
+        }
+
     def _collect_concurrency(
             self,
             date_range = None,
             column_left = _activity_start_col,
             column_right = _activity_end_col,
             func = value_between_row_values,
-            limit = None
+            limit = None,
+            mp = True
     ):
-        # and then re-aggregate
-
+        """
+        :param date_range:
+        :param column_left:
+        :param column_right:
+        :param func:
+        :param limit:
+        :param mp:
+        :return:
+        """
         concurrency_collection = []
 
         if date_range is None:
@@ -97,27 +147,43 @@ class ActivityDataSet(DataSet):
         if limit is None:
             limit = len(date_range)
 
-        for d in tqdm(date_range[:limit]):
-            # TODO: multithread this, perhaps separate out a generator from the rest to hand off
-            df_filter = self._df.apply(
-                lambda x: func(
-                    x,
-                    d,
-                    column_left,
-                    column_right
-                ),
-                axis=1
-            )
-            concurrency_collection.append({
-                self._ts_index_label: d,
-                'concurrent_activity_count': len(self._df[df_filter])
-            })
+        if mp:
+            # iterable for data_df, datetime, column_left, column_right, func , ts_index_label
+            # note to self: do not pass self
+            concurrency_iterator = [(self._df, datetime, column_left, column_right, func, self._ts_index_label)
+                                    for datetime in date_range[:limit]]
+
+            with multiprocessing.Pool(processes=os.cpu_count()-1) as pool:
+                concurrency_collection = pool.map(self._mp_concurrency_helper, concurrency_iterator)
+        else:
+            for d in tqdm(date_range[:limit]):
+                # TODO: multithread this, perhaps separate out a generator from the rest to hand off
+                df_filter = self._df.apply(
+                    lambda x: func(
+                        x,
+                        d,
+                        column_left,
+                        column_right
+                    ),
+                    axis=1
+                )
+                concurrency_collection.append({
+                    self._ts_index_label: d,
+                    'concurrent_activity_count': len(self._df[df_filter])
+                })
 
         return concurrency_collection
 
-    def concurrency_ts(self, resolution=None):
+    def concurrency_ts(self, resolution=None, *args, **kwargs):
+        """
+
+        :param resolution:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         # by default, use the... self.default_resolution
-        cc = pd.DataFrame(self._collect_concurrency()).set_index(self._ts_index_label)
+        cc = pd.DataFrame(self._collect_concurrency(*args, **kwargs)).set_index(self._ts_index_label)
 
         if resolution is None:
             resolution = self._default_resolution

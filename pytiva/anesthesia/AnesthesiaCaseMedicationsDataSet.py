@@ -158,7 +158,7 @@ class AnesthesiaCaseMedicationsDataSet(AnesthesiaDataSet):
             td_offset_after=offset_after
         )
         data['activity'] = activity_label
-        return ActivityDataSet(data, *args, **kwargs)
+        return ActivityDataSet(data[['activity', 'activity_start', 'activity_end', 'case_id']], *args, **kwargs)
 
     def _signature_series(self):
         """

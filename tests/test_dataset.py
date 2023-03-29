@@ -5,14 +5,14 @@ import pandas as pd
 # local module to be tested
 from pytiva.dataset import DataSet
 
-WD = r'test_data'
-ACTIVITY_TEST_DATA_FILENAME = 'activity_test_data_full.csv'
+# local test config
+import testconfig
 
 
 class TestDataSet(unittest.TestCase):
     def setUp(self):
         self.df_ref = pd.read_csv(
-            os.path.join(WD, ACTIVITY_TEST_DATA_FILENAME),
+            os.path.join(testconfig.WD, testconfig.TESTDATA['DS_ACTIVITY'])# ACTIVITY_TEST_DATA_FILENAME),
             #parse_dates=['activity_start', 'activity_end']
         )
 

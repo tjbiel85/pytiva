@@ -5,21 +5,20 @@ import pandas as pd
 # local module to be tested
 from pytiva.activity import ActivityDataSet
 
-WD = r'test_data'
-ACTIVITY_TEST_DATA_FILENAME = 'activity_test_data_full.csv'
-CONCURRENCY_TEST_DATA_FILENAME = 'test_data_concurrency.csv'
+# local test config
+import testconfig
 
 
 class TestActivityTimeSeries(unittest.TestCase):
 
     def setUp(self):
         self.df_activity_test_data = pd.read_csv(
-            os.path.join(WD, ACTIVITY_TEST_DATA_FILENAME),
+            os.path.join(testconfig.WD, testconfig.TESTDATA['DS_ACTIVITY']),
             parse_dates=['activity_start', 'activity_end']
         )
         self.ds_activity = ActivityDataSet(self.df_activity_test_data)
         self.ts_concurrency_test_data = pd.read_csv(
-            os.path.join(WD, CONCURRENCY_TEST_DATA_FILENAME),
+            os.path.join(testconfig.WD, testconfig.TESTDATA['TS_CONCURRENCY']),
             parse_dates=['timestamp'],
             index_col='timestamp'
         )

@@ -32,7 +32,7 @@ class AnesthesiaCaseEventsDataSet(AnesthesiaDataSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def activity_ds_from_start_and_end_events(self, start_event, end_event, activity_name='activity'):
+    def activity_ds_from_start_and_end_events(self, start_event, end_event, activity_label='activity'):
         """
         Find paired instances of events start_event and end_event in DataFrame df, and use
         these to generate an ActivityDataSet.
@@ -49,6 +49,6 @@ class AnesthesiaCaseEventsDataSet(AnesthesiaDataSet):
         targets['paired'] = targets.apply(lambda x: x[self._event_col] == start_event and x['next'] == end_event, axis=1)
         activity = targets[targets['paired']][[self._datetime_col, self._case_id_col, 'activity_end']]
         activity.rename(columns={'event_datetime': 'activity_start'}, inplace=True)
-        activity['activity'] = activity_name
+        activity['activity'] = activity_label
 
         return ActivityDataSet(activity.reset_index(drop=True))

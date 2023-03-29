@@ -29,3 +29,14 @@ class AnesthesiaDataSet(DataSet):
             td_after=td_offset_after,
             inplace=False
         )
+
+    def limit_by_list(self, col, lst_items):
+        """
+        :param col: a label corresponding to a column in the DataFrame at self._df
+        :param lst_items: allowable items; will be used in DataFrame[col].isin()
+        :return: excluded items, in an object of the same type as self
+        """
+        mask = self._df[col].isin(lst_items)
+        excluded = self._df.loc[ ~mask ]
+        self._df = self._df.loc[ mask ]
+        return type(self)(excluded)

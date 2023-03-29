@@ -1,5 +1,6 @@
 import pandas as pd
 from ..activity import ActivityDataSet
+from ..anesthesia.EventActivityDefinition import EventActivityDefinition
 
 
 class AnesthesiaStudy(object):
@@ -7,6 +8,18 @@ class AnesthesiaStudy(object):
     ds_activity = None
     _unduplicated_activity = None
     _unduplicated_concurrency = None
+    _allowed_member_datasets = ['ds_cases', 'ds_case_events', 'ds_case_meds', 'ds_case_staffing']
+
+    _config_labels = { # these are a mess, but good enough for now
+        'cases_section': 'CASE_LIMITS',
+        'case_date_range': 'ANESTHESIA_START_RANGE',
+        'case_locations_key': 'LOCATIONS',
+        'case_procedures_key': 'PROCEDURES',
+        'activity_section': 'ACTIVITIES',
+        'meds_td_before': 'MEDICATION_ACTIVITY_OFFSET_BEFORE',
+        'meds_td_after':'MEDICATION_ACTIVITY_OFFSET_AFTER',
+        'event_definitions': 'EVENT_ACTIVITY_DEFINITIONS'
+    }
 
     def __init__(self,
                  ds_cases,
@@ -33,36 +46,40 @@ class AnesthesiaStudy(object):
 
     @property
     def _case_dataset_member_names(self):
-        return [x for x in ['ds_cases', 'ds_case_events', 'ds_case_meds', 'ds_case_staffing'] if
+        return [x for x in self._allowed_member_datasets if
                 hasattr(self, x) and getattr(self, x) is not None]
 
     @property
     def _case_dataset_member_dict(self):
         return {n: getattr(self, n) for n in self._case_dataset_member_names}
 
-    def _propagate_member_cases(self):
+    def _propagate_member_cases(self, cases_from='ds_cases'):
         """
         Limit the member case DataSets by the case_id values in ds_case.
+
+        By default, propagates cases from ds_cases, but can propagate them to everybody else if a different
+        DataSet is specified.
         """
-        allowed = self.ds_cases['case_id'].unique()
+
+        if cases_from not in self._allowed_member_datasets:
+            raise Exception(f'cases_from must be in {self._allowed_member_datasets} (got "{cases_from}")')
+
+        allowed = getattr(self, cases_from)['case_id'].unique()
 
         for name, ds in self._case_dataset_member_dict.items():
-            ds_type = ds._self_type
-            new_ds = ds_type(ds.loc[ds['case_id'].isin(allowed)])
+            new_ds = ds._self_type(ds.loc[ds['case_id'].isin(allowed)])
             setattr(self, name, new_ds)
 
-    def limit_by_procedures(self, lst_procedures, case_sensitive=False,
-                            propagate_cases=True, return_excluded=False):
-        """
-        Limit the cases in ds_cases by procedure value using a list of permissible procedures.
+    def limit_by_list(self, target_col, lst_items, ds_label='ds_cases',
+                      return_excluded=True, propagate_cases=True):
 
-        Updates data in self.ds_cases and returns excluded items.
-        """
+        if ds_label not in self._allowed_member_datasets:
+            raise Exception(f'member_dataset must be in {self._allowed_member_datasets} (got "{ds_label}")')
 
-        ds_excluded = self.ds_cases.limit_by_procedure_list(lst_procedures, case_sensitive)
+        ds_excluded = getattr(self, ds_label).limit_by_list(target_col, lst_items)
 
         if propagate_cases:
-            self._propagate_member_cases()
+            self._propagate_member_cases(cases_from=ds_label)
 
         if return_excluded:
             return ds_excluded
@@ -93,7 +110,13 @@ class AnesthesiaStudy(object):
         """
         return self.ds_cases['anesthesia_start'].min(), self.ds_cases['anesthesia_start'].max()
 
-    def summarize(self):
+    @property
+    def _member_ds_and_counts(self):
+        # in which case, unittests will need to be updated to support them
+        # (json casts tuples to list, which is how the data are stored for comparison)
+        return [[k, len(v._df)] for k, v in self._case_dataset_member_dict.items()]
+
+    def summarize(self, verbose=True):
         lines = []
         lines.append(f"## AnesthesiaStudy object ##")
 
@@ -185,73 +208,45 @@ class AnesthesiaStudy(object):
         }
         """
 
-        _cases_section = 'CASE_LIMITS'
-        _case_date_range = 'ANESTHESIA_START_RANGE'
-        _case_locations_key = 'LOCATIONS'
-        _case_procedures_key = 'PROCEDURES'
-
-        _activity_section = 'ACTIVITIES'
-        _meds_td_before = 'MEDICATION_ACTIVITY_OFFSET_BEFORE'
-        _meds_td_after = 'MEDICATION_ACTIVITY_OFFSET_AFTER'
-        _event_definitions = 'EVENT_ACTIVITY_DEFINITIONS'
-
-        if _cases_section in config_dict.keys():
-            case_limits = config_dict[_cases_section]
+        if self._config_labels['cases_section'] in config_dict.keys():
+            case_limits = config_dict[self._config_labels['cases_section']]
 
             # dates
-            if _case_date_range in case_limits.keys():
-                s, e = case_limits[_case_date_range]
+            if self._config_labels['case_date_range'] in case_limits.keys():
+                s, e = case_limits[self._config_labels['case_date_range']]
                 self.limit_by_dates(dt_end=pd.to_datetime(e), dt_start=pd.to_datetime(s))
 
             # procedures
-            if _case_procedures_key in case_limits.keys():
-                self.limit_by_procedures(case_limits[_case_procedures_key])
+            if self._config_labels['case_procedures_key'] in case_limits.keys():
+                self.limit_by_list('procedure', case_limits[self._config_labels['case_procedures_key']])
 
             # locations
-            # TODO
+            if self._config_labels['case_locations_key'] in case_limits.keys():
+                self.limit_by_list('location', case_limits[self._config_labels['case_locations_key']])
 
-        # activity stuff
+        # activity stuff --> consider moving this to self.generate_activity_ds() somehow
         all_activities = []
-        if _activity_section in config_dict.keys():
-            activities = config_dict[_activity_section]
+        if self._config_labels['activity_section'] in config_dict.keys():
+            activities = config_dict[self._config_labels['activity_section']]
             med_activity = None
             event_activity = None
 
             # from medications!
-            # TODO: make this more granular, such as different times for different meds
-            if _meds_td_before in activities.keys() and _meds_td_after in activities.keys():
+            # TODO: make this more granular, such as different times for different meds; ?MedicationActivityDefinition?
+            if self._config_labels['meds_td_before'] in activities.keys() and self._config_labels['meds_td_after'] in activities.keys():
                 med_activity = self.ds_case_meds.to_activity_dataset(
-                    offset_before=activities[_meds_td_before],
-                    offset_after=activities[_meds_td_after]
+                    offset_before=activities[self._config_labels['meds_td_before']],
+                    offset_after=activities[self._config_labels['meds_td_after']]
                 )
                 all_activities.append(med_activity)
 
             # from events!
-            if _event_definitions in activities.keys():
+            if self._config_labels['event_definitions'] in activities.keys():
                 event_activity = []
 
-                for activity_definition in activities[_event_definitions]:
-                    # TODO: consider abstracting this out to a separate activity_from_events() or some such
-                    # would like to be able to set aside some info about how these are generated
-                    # maybe separate out the initial activity generation versus the truncation for max duration?
-
-                    # print(activity_definition)
-                    ds = self.ds_case_events.activity_ds_from_start_and_end_events(
-                        start_event=activity_definition['EVENT_START'],
-                        end_event=activity_definition['EVENT_END'],
-                        activity_name=activity_definition['LABEL']
-                    )
-
-                    # truncate using maximum duration criteria
-                    maximum_duration = ds['duration'].quantile(activity_definition['MAX_DURATION_QUANTILE']) * \
-                                       activity_definition['MAX_DURATION_FACTOR']
-
-                    # print(ds['duration'].describe())
-                    # print(f"Duration {activity_definition['MAX_DURATION_QUANTILE']}%ile: {ds['duration'].quantile(activity_definition['MAX_DURATION_QUANTILE'])}")
-                    # print(f'Maximum duration by quantile and factor: {maximum_duration}')
-
-                    ds.loc[ds['duration'] > maximum_duration, 'duration'] = maximum_duration
-                    event_activity.append(ds)
+                for activity_definition in activities[self._config_labels['event_definitions']]:
+                    ead = EventActivityDefinition(**activity_definition)
+                    event_activity.append(ead.apply_to_ds(self.ds_case_events))
 
                 all_activities.extend(event_activity)
 
@@ -260,22 +255,37 @@ class AnesthesiaStudy(object):
 
         return all_activities
 
-    def unduplicate_activity(self, strata=['case_id']):
+    def unduplicate_activity(self, strata=['case_id'], *args, **kwargs):
         """
-        By default, unduplicates with case_id as the lone stratum.
+        Wraps self.ds_activity.fetch_unduplicated_concurrency(), passing along unused arguments.
+
+        By default, unduplicates with case_id as the lone stratum, but could happily use any levels.
         """
 
         if self.ds_activity is not None:
-            self._unduplicated_activity = self.ds_activity.fetch_unduplicated_concurrency(strata=strata)
+            self._unduplicated_activity = self.ds_activity.fetch_unduplicated_concurrency(strata=strata,
+                                                                                          *args,
+                                                                                          **kwargs)
             return self._unduplicated_activity
         else:
             return False
 
-    def unduplicate_concurrency(self, strata=['case_id'], resolution=None):
+    def unduplicate_concurrency(self, strata=['case_id'], resolution=None, *args, **kwargs):
+        """
+        Wraps self.unduplicate_activity(), passing along unused arguments.
+
+        By default, unduplicates with case_id as the lone stratum, but could happily use any levels.
+
+        :param strata:
+        :param resolution:
+        :return:
+        """
         unduplicated_activity = self.unduplicate_activity(strata=strata)
 
-        self._unduplicated_concurrency = unduplicated_activity.concurrency_ts(resolution=resolution)
+        self._unduplicated_concurrency = unduplicated_activity.concurrency_ts(resolution=resolution,
+                                                                              *args,
+                                                                              **kwargs)
         return self._unduplicated_concurrency
 
     def __repr__(self):
-        return self.summarize()
+        return self.summarize(verbose=False)
