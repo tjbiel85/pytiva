@@ -7,6 +7,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from .utils import value_between_row_values, check_start_of_concurrent_activity, check_end_of_concurrent_activity
+from ..viz import activity_data_to_gantt_data, gantt_plot
+
 from ..dataset import DataSet
 
 
@@ -30,12 +32,14 @@ class ActivityDataSet(DataSet):
     _concurrency_ts_end_col = 'is_end'
     _ts_index_label = 'timestamp'
 
-    _forbidden_columns = ['duration']
+    _forbidden_columns = []#['duration']
 
     def __init__(
             self,
             data,
             default_resolution='1Min',
+            reset_index_on_init=True,
+            generate_duration_on_init=True,
             *args, **kwargs
     ):
         self._default_resolution = default_resolution
@@ -49,7 +53,12 @@ class ActivityDataSet(DataSet):
             lambda x: x.ceil(self._default_resolution)
         )
 
-        self.generate_duration()
+        if generate_duration_on_init:
+            self.generate_duration()
+
+        if reset_index_on_init:
+            self._df.reset_index(inplace=True, drop=True)
+
         self._resort_columns()
 
     def generate_duration(self):

@@ -31,12 +31,17 @@ def minute_of_day(timestamp):
     return timestamp.hour * 60 + timestamp.minute
 
 
-def concurrent_weekly_activity(df_cc):
+def concurrent_weekly_activity(df_cc, label='concurrent_activity_count'):
+    """
+    Expects pandas.DataFrame with DatetimeIndex
+    :param df_cc:
+    :return:
+    """
     df_copy = df_cc.copy()
     df_copy['dayofweek'] = df_copy.index.dayofweek
     df_copy['day_name'] = df_copy.index.day_name()
     df_copy['minute_of_day'] = df_copy.index.map(minute_of_day)
-    grouped = df_copy.groupby(['minute_of_day', 'day_name'])['concurrent_activity_count'].mean()
+    grouped = df_copy.groupby(['minute_of_day', 'day_name'])[label].mean()
     return grouped.unstack()[ORDERED_WEEKLY_DAY_NAME]
 
 

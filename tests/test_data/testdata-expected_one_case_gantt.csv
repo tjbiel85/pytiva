@@ -1,0 +1,22 @@
+gtask,gstart,gduration
+activity A 1,0.0,1560.0
+medication 1,780.0,360.0
+medication 2,780.0,360.0
+medication 3,1140.0,360.0
+medication 4,43020.0,360.0
+medication 5,44040.0,360.0
+medication 6,44040.0,360.0
+medication 7,44100.0,360.0
+activity B 1,44280.0,3120.0
+medication 8,44460.0,360.0
+medication 9,44460.0,360.0
+medication 10,45060.0,360.0
+medication 11,45060.0,360.0
+medication 12,45060.0,360.0
+medication 13,45060.0,360.0
+medication 14,45060.0,360.0
+medication 15,45480.0,360.0
+medication 16,45600.0,360.0
+medication 17,45960.0,360.0
+medication 18,46020.0,360.0
+medication 19,46320.0,360.0

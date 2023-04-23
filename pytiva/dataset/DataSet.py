@@ -25,7 +25,6 @@ class DataSet(object):
         try:
             self._df = pd.DataFrame(data, *args, **kwargs).copy()
         except Exception as e:
-            print(e)
             raise Exception(f'Supplied data and signature must be able to create a pandas DataFrame')
 
         # verify no forbidden columns
@@ -136,3 +135,14 @@ class DataSet(object):
     @property
     def _length(self):
         return len(self._df)
+
+    def limit_by_list(self, col, lst_items):
+        """
+        :param col: a label corresponding to a column in the DataFrame at self._df
+        :param lst_items: allowable items; will be used in DataFrame[col].isin()
+        :return: excluded items, in an object of the same type as self
+        """
+        mask = self._df[col].isin(lst_items)
+        excluded = self._df.loc[ ~mask ]
+        self._df = self._df.loc[ mask ]
+        return type(self)(excluded)

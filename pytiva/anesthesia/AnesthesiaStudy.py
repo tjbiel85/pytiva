@@ -8,7 +8,13 @@ class AnesthesiaStudy(object):
     ds_activity = None
     _unduplicated_activity = None
     _unduplicated_concurrency = None
-    _allowed_member_datasets = ['ds_cases', 'ds_case_events', 'ds_case_meds', 'ds_case_staffing']
+    _allowed_member_case_datasets = [
+        'ds_cases',
+        'ds_case_events',
+        'ds_case_meds',
+        'ds_case_staffing'
+        #'ds_resources'
+    ]
 
     _config_labels = { # these are a mess, but good enough for now
         'cases_section': 'CASE_LIMITS',
@@ -46,14 +52,14 @@ class AnesthesiaStudy(object):
 
     @property
     def _case_dataset_member_names(self):
-        return [x for x in self._allowed_member_datasets if
+        return [x for x in self._allowed_member_case_datasets if
                 hasattr(self, x) and getattr(self, x) is not None]
 
     @property
     def _case_dataset_member_dict(self):
         return {n: getattr(self, n) for n in self._case_dataset_member_names}
 
-    def _propagate_member_cases(self, cases_from='ds_cases'):
+    def _propagate_member_cases(self, cases_from='ds_cases', include_activity=True):
         """
         Limit the member case DataSets by the case_id values in ds_case.
 
@@ -61,8 +67,8 @@ class AnesthesiaStudy(object):
         DataSet is specified.
         """
 
-        if cases_from not in self._allowed_member_datasets:
-            raise Exception(f'cases_from must be in {self._allowed_member_datasets} (got "{cases_from}")')
+        if cases_from not in self._allowed_member_case_datasets:
+            raise Exception(f'cases_from must be in {self._allowed_member_case_datasets} (got "{cases_from}")')
 
         allowed = getattr(self, cases_from)['case_id'].unique()
 
@@ -70,11 +76,18 @@ class AnesthesiaStudy(object):
             new_ds = ds._self_type(ds.loc[ds['case_id'].isin(allowed)])
             setattr(self, name, new_ds)
 
+        # TODO: refactor this more elegantly somehow, ?integrate elsewhere
+        if include_activity and self.ds_activity is not None:
+            self.ds_activity._df = self.ds_activity._df[
+                self.ds_activity._df['case_id'].isin(self.ds_cases['case_id'].tolist())]
+
+        pass
+
     def limit_by_list(self, target_col, lst_items, ds_label='ds_cases',
                       return_excluded=True, propagate_cases=True):
 
-        if ds_label not in self._allowed_member_datasets:
-            raise Exception(f'member_dataset must be in {self._allowed_member_datasets} (got "{ds_label}")')
+        if ds_label not in self._allowed_member_case_datasets:
+            raise Exception(f'member_dataset must be in {self._allowed_member_case_datasets} (got "{ds_label}")')
 
         ds_excluded = getattr(self, ds_label).limit_by_list(target_col, lst_items)
 
@@ -116,9 +129,11 @@ class AnesthesiaStudy(object):
         # (json casts tuples to list, which is how the data are stored for comparison)
         return [[k, len(v._df)] for k, v in self._case_dataset_member_dict.items()]
 
-    def summarize(self, verbose=True):
-        lines = []
-        lines.append(f"## AnesthesiaStudy object ##")
+    def summarize(self, verbose=True, activity_count_freq='M'):
+        lines = [f"### AnesthesiaStudy object ###"]
+
+        # case summary info
+        lines.append(f'* Case data *')
 
         start_min, start_max = self._anesthesia_start_range
         lines.append(f"ds_cases['anesthesia_start'] range: {start_min} to {start_max}")
@@ -126,8 +141,13 @@ class AnesthesiaStudy(object):
         members = [lines.append(f"{n} ({ds._length} rows)") for n, ds in self._case_dataset_member_dict.items()]
 
         if self.ds_activity is not None:
+            lines.append(f'\n* Activity data *')
             hr_activity = f'ds_activity: ' + self.ds_activity.hr_activity_summary()
             lines.append(hr_activity)
+
+            s = self.ds_activity.groupby(['activity', pd.Grouper(key='activity_start', axis=0, freq=activity_count_freq)])[
+                'case_id'].count()
+            lines.extend(repr(s).split('\n')[:-1])
 
         return "\n".join(lines)
 

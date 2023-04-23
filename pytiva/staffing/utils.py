@@ -1,50 +1,14 @@
 import pandas as pd
 
-from ..activity import ActivityDataSet
+from .ProviderShift import ProviderShift
 
 
-def staff_activity_from_assignments_long_format(shift_assignments,
-                                                provider_shift_library):
-    """
-    Helper function to populate an ActivityDataset using a collection
-    of shift assignments using ProviderShift objects to help translate.
-
-    Expects as input a DataFrame with columns label, index_date,
-    datetime_slot, and capacity.
-
-    For example:
-    (index)       assignment       date        staff
-    0      Fel-ICU-Incentive 2021-10-02  Montejano J
-    1      Fel-ICU-Incentive 2021-10-10  Montejano J
-    2                Surge 2 2021-11-17   Hennigan A
-    3                Surge 2 2021-11-18   Hennigan A
-    4                Surge 2 2021-11-19      Douin D
-
-    """
-
-    staffing_slots = []
-
-    for i, assignment in shift_assignments.iterrows():
-
-        s = matching_shift_from_dictionary(
-            assignment['assignment'],
-            provider_shift_library
-        )
-
-        if s:
-            d = assignment['date']
-
-            slot = {
-                'activity_start': d + s.start,
-                'activity_end': d + s.start + s.duration,
-                'activity': s.label,
-                'personnel': assignment['staff'],
-                'capacity': s.capacity
-            }
-
-            staffing_slots.append(slot)
-
-    return ActivityDataSet(staffing_slots)
+def provider_shift_defs_to_kv_dict(definitions, exclude_zero_capacity=False):
+    return {
+        d['label']: ProviderShift(**d)
+        for d in definitions
+        if not (exclude_zero_capacity and d['capacity'] == 0)
+    }
 
 
 def matching_shift_from_collection(label, collection):
@@ -58,21 +22,22 @@ def matching_shift_from_collection(label, collection):
                 match = s
             else:
                 raise Exception(f'Found more than one match ({s} and {match})')
-
     return match
 
 
-def matching_shift_from_dictionary(label, collection):
-    """Return matching ProviderShift object in collection, according to label
-
-    Assumes collection is structured as {'label': ProviderShift object}
-
+def matching_ps_from_dictionary(key, dictionary):
     """
-    match = label in collection.keys()
+    Return matching ProviderShift object in dictionary, according to key. Assumes dictionary is structured as
+    {key: ProviderShift object}
+
+    Is also case-sensitive--might need to process incoming schedule data in case of irregularities.
+    """
+    match = key in dictionary.keys()
     if match:
-        return collection[label]
+        return dictionary[key]
     else:
-        raise Exception(f'Could not find matching shift in collection ({label})')
+        raise Exception(f'Could not find matching key in dictionary ({key})')
+    pass
 
 
 def earliest_starting_time(shift_collection):
@@ -110,9 +75,6 @@ def qgenda_task_grid_to_long_format(filepath, skiprows=3,
                                     months_format='%b-%y'):
     """
     Processes a Qgenda staffing export in "grid by task" format from an Excel file at filepath.
-
-    This is built on a version of the file format exported in September 2022 from the Qgenda
-    website. A copy of an example file is supplied in the tests/test_data directory.
 
     Returns a pandas DataFrame in "long" format, where each row is a single staff assignment
     with a numeric automatic index and columns ['assignment', 'date', 'staff'] e.g.:

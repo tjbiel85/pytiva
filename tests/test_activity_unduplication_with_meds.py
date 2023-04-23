@@ -7,6 +7,7 @@ from pytiva.anesthesia import AnesthesiaCaseMedicationsDataSet
 
 import testconfig
 
+
 class TestActivityTimeSeries(unittest.TestCase):
 
     def setUp(self):
@@ -25,8 +26,6 @@ class TestActivityTimeSeries(unittest.TestCase):
         strata_cols = ['case_id']
         unduplicated = ads.fetch_unduplicated_concurrency(activities=['medication'], strata=strata_cols)
         big_df = unduplicated._df
-        print(big_df)
-        print(self.unduplicated_med_activity_by_case_df)
 
         self.assertTrue(all(big_df == self.unduplicated_med_activity_by_case_df))
 
