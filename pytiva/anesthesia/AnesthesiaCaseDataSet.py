@@ -33,6 +33,7 @@ class AnesthesiaCaseDataSet(AnesthesiaDataSet):
         'procedure'
     ]
     _datetime_columns = ['anesthesia_start', 'anesthesia_end']
+    _str_columns = ['location']
 
     events = []
     medications = []

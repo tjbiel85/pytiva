@@ -16,6 +16,7 @@ class DataSet(object):
     _forbidden_columns = []
     _required_columns = []
     _datetime_columns = []
+    _str_columns = []
 
     def __init__(self, data, index_column=None, *args, **kwargs):
         if data is None:
@@ -41,7 +42,12 @@ class DataSet(object):
                 f'This DataSet requires columns {self._required_columns} and is missing {missing_required_columns}')
 
         for dtc in self._datetime_columns:
-            self._df[dtc] = pd.to_datetime(self._df[dtc])
+            if dtc in self._df.columns:
+                self._df[dtc] = pd.to_datetime(self._df[dtc])
+
+        for strc in self._str_columns:
+            if strc in self._df.columns:
+                self._df[strc] = self._df[strc].astype(str)
 
         # if specified, index the DataFrame to the specified column
         if index_column is not None:

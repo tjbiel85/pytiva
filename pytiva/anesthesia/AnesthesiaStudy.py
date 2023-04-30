@@ -129,7 +129,7 @@ class AnesthesiaStudy(object):
         # (json casts tuples to list, which is how the data are stored for comparison)
         return [[k, len(v._df)] for k, v in self._case_dataset_member_dict.items()]
 
-    def summarize(self, verbose=True, activity_count_freq='M'):
+    def summarize(self, verbose=True, activity_count_freq='M', extra_quantiles=[.90, .95, .98]):
         lines = [f"### AnesthesiaStudy object ###"]
 
         # case summary info
@@ -145,9 +145,16 @@ class AnesthesiaStudy(object):
             hr_activity = f'ds_activity: ' + self.ds_activity.hr_activity_summary()
             lines.append(hr_activity)
 
-            s = self.ds_activity.groupby(['activity', pd.Grouper(key='activity_start', axis=0, freq=activity_count_freq)])[
-                'case_id'].count()
-            lines.extend(repr(s).split('\n')[:-1])
+            if verbose:
+                s = self.ds_activity.groupby(['activity', pd.Grouper(key='activity_start', axis=0, freq=activity_count_freq)])[
+                    'case_id'].count()
+                lines.extend(repr(s).split('\n')[:-1])
+
+                described = self.ds_activity.groupby('activity')['duration'].describe()
+                for x in extra_quantiles:
+                    described["{0:.0%}".format(x)] = self.ds_activity.groupby('activity')['duration'].quantile(x)
+
+                lines.extend(repr(described[sorted(described.columns)].T).split('\n'))
 
         return "\n".join(lines)
 

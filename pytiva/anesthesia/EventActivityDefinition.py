@@ -1,5 +1,3 @@
-import pandas as pd
-
 from ..activity import ActivityDataSet
 
 
