@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pytiva"
+version = "2023.5.5"
+authors = [
+    { name="TJ Biel", email="tjbiel85@gmail.com" },
+]
+description = "Python Tools for Investigation and Visualziing Activity within anesthesia records"
+readme = "README.md"
+requires-python = ">=3.10.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["pytiva/requirements.txt"]}
+
+[tool.setuptools]
+packages = [
+    "pytiva",
+    "pytiva.activity",
+    "pytiva.anesthesia",
+    "pytiva.dataset",
+    "pytiva.staffing",
+    "pytiva.utils",
+    "pytiva.viz"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/tjbiel85/pytiva"
+"Bug Tracker" = "https://github.com/tjbiel85/pytiva/issues"
