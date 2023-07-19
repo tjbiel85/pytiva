@@ -1,4 +1,5 @@
 import pandas as pd
+from ..stats import test_group_means as st_test_group_means
 
 
 class DataSet(object):
@@ -152,3 +153,10 @@ class DataSet(object):
         excluded = self._df.loc[ ~mask ]
         self._df = self._df.loc[ mask ]
         return type(self)(excluded)
+
+    def test_group_means(self, category_label, data_label, anova_alpha=0.05, hsd_confidence_level=0.95,
+                         *args, **kwargs):
+        df = self._df
+        categories = df[category_label].unique()
+        samples = [df[df[category_label] == s][data_label] for s in categories]
+        return st_test_group_means(samples, categories, anova_alpha, hsd_confidence_level, *args, **kwargs)

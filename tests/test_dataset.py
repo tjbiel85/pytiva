@@ -12,8 +12,8 @@ import testconfig
 class TestDataSet(unittest.TestCase):
     def setUp(self):
         self.df_ref = pd.read_csv(
-            os.path.join(testconfig.WD, testconfig.TESTDATA['DS_ACTIVITY'])# ACTIVITY_TEST_DATA_FILENAME),
-            #parse_dates=['activity_start', 'activity_end']
+            os.path.join(testconfig.WD, testconfig.TESTDATA['DS_ACTIVITY']),
+            parse_dates=['activity_start', 'activity_end']
         )
 
     def test_none_data_throws_exception(self):
@@ -55,6 +55,19 @@ class TestDataSet(unittest.TestCase):
         index_column = self.df_ref.columns[0]
         ds = DataSet(self.df_ref, index_column=index_column)
         self.assertTrue(ds.index.name == index_column)
+
+    def test_statistical_testing_of_group_means_anova(self):
+        self.df_ref['duration'] = (self.df_ref['activity_end'] - self.df_ref['activity_start']).dt.total_seconds()
+        ds = DataSet(self.df_ref)
+        tgm_result = ds.test_group_means('activity', 'duration')
+        self.assertTrue(tgm_result[0] == testconfig.TESTDATA['EXPECTED_ANOVA_DICT'])
+
+    def test_statistical_testing_of_group_means_hsd(self):
+        self.df_ref['duration'] = (self.df_ref['activity_end'] - self.df_ref['activity_start']).dt.total_seconds()
+        ds = DataSet(self.df_ref)
+        tgm_result = ds.test_group_means('activity', 'duration')
+        expected_hsd = pd.read_csv(os.path.join(testconfig.WD, testconfig.TESTDATA['EXPECTED_TUKEY_HSD_DF']))
+        self.assertTrue(all(tgm_result[1]['result_df'] == expected_hsd))
 
 
 # in a script file

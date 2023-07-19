@@ -1,5 +1,5 @@
-import itertools
 import operator
+
 ORDERED_WEEKLY_DAY_NAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 
