@@ -25,7 +25,9 @@ TESTDATA = {
     'DS_RESOURCES_LIMITED_BY_DATE_LIST_AND_PS_DICT': 'testdata-ds_resources_limited_by_date_list_and_ps_dict.csv',
     'ADS_GENERATE_RESOURCE_ACTIVITY_W_PS_DICT': 'testdata-ads_generate_resource_activity_w_ps_dict.csv',
     'EXPECTED_TUKEY_HSD_DF': 'testdata-expected_tukey_hsd_df.csv',
-    'EXPECTED_ANOVA_DICT': {'f_statistic': 5352.653462676786, 'p_value': 0.0}
+    'EXPECTED_ANOVA_DICT': {'f_statistic': 5352.653462676786, 'p_value': 0.0, 'alpha': 0.05, 'reject_h0': True},
+    'DF_MEAN_RATE_BY_CATEGORY': 'testdata-df_mean_rate_by_category.csv',
+    'DF_MEAN_RATE_BY_CATEGORY_WITH_CI': 'testdata-df_mean_rate_by_category_with_ci.csv'
 }
 
 TESTDATA_CSV_DICT_FOR_DATASETS = {

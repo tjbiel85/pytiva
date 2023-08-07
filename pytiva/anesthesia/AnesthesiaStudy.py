@@ -129,7 +129,8 @@ class AnesthesiaStudy(object):
         # (json casts tuples to list, which is how the data are stored for comparison)
         return [[k, len(v._df)] for k, v in self._case_dataset_member_dict.items()]
 
-    def summarize(self, verbose=True, activity_count_freq='M', extra_quantiles=[.90, .95, .98]):
+    def summarize(self, verbose=True, activity_count_freq='M', extra_quantiles=[.90, .95, .98], include_ci=0.95):
+        #TODO: update this to incorporate stats.describe_plus()
         lines = [f"### AnesthesiaStudy object ###"]
 
         # case summary info

@@ -56,19 +56,6 @@ class TestDataSet(unittest.TestCase):
         ds = DataSet(self.df_ref, index_column=index_column)
         self.assertTrue(ds.index.name == index_column)
 
-    def test_statistical_testing_of_group_means_anova(self):
-        self.df_ref['duration'] = (self.df_ref['activity_end'] - self.df_ref['activity_start']).dt.total_seconds()
-        ds = DataSet(self.df_ref)
-        tgm_result = ds.test_group_means('activity', 'duration')
-        self.assertTrue(tgm_result[0] == testconfig.TESTDATA['EXPECTED_ANOVA_DICT'])
-
-    def test_statistical_testing_of_group_means_hsd(self):
-        self.df_ref['duration'] = (self.df_ref['activity_end'] - self.df_ref['activity_start']).dt.total_seconds()
-        ds = DataSet(self.df_ref)
-        tgm_result = ds.test_group_means('activity', 'duration')
-        expected_hsd = pd.read_csv(os.path.join(testconfig.WD, testconfig.TESTDATA['EXPECTED_TUKEY_HSD_DF']))
-        self.assertTrue(all(tgm_result[1]['result_df'] == expected_hsd))
-
 
 # in a script file
 if __name__ == '__main__':
